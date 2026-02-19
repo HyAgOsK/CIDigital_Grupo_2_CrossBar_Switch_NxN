@@ -7,9 +7,10 @@ module crossbar_switch_barrel_shifter #(
 	output wire [N-1:0] [W-1:0] out    // Portas de saída do switch
 );
 
-	// VERSÃO UNIFICADA (BRUNO NASSAR)
+	// VERSÃO UNIFICADA
+	// CONTRIBUIÇÕES DE: LUCAS, HYAGO, BRUNO NASSAR
 	// Crossbar switch barrel shifter NxN:
-	//  * Quantidade de muxes: N muxes em uma única camada;
+	//  * Quantidade de muxes: N muxes Nx1 em uma única camada;
 	//  * Pontos de interseção: N²;
 	//  * Complexidade do atraso de propagação: O(1);
 	//  * Fan-out dos buffers de entrada: N;
@@ -28,7 +29,7 @@ module crossbar_switch_barrel_shifter #(
 		end
 	endgenerate
 
-	// // VERSÃO HYAGO
+	// // CONTRIBUIÇÃO DE: HYAGO
 	// genvar k;
 	// generate
 	//     for (k = 0; k < N; k = k + 1) begin: G_ROT
@@ -36,7 +37,7 @@ module crossbar_switch_barrel_shifter #(
 	// 	end
 	// endgenerate
 
-	// // VERSÃO LUCAS
+	// // CONTRIBUIÇÃO DE: LUCAS
 	// wire [ 2 * N - 1 : 0] double_in;
 	//
     // assign double_in = { in , in};      //Duplica a entrada para permitir a rotação, tornando o código sintetizavel
