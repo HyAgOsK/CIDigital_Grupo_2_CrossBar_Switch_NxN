@@ -103,8 +103,7 @@ O sistema deve:
 
 A arquitetura implementada é composta pelos seguintes blocos: (**Excalidraw**: [https://excalidraw.com/#json=6uOeknHxXXK503_TV-6tO,4uRVQPezpFK6KCy5h4mJFQ](https://excalidraw.com/#json=6uOeknHxXXK503_TV-6tO,4uRVQPezpFK6KCy5h4mJFQ))
 
-![image.png](image.png)
-
+![image.png](./Projeto-Final-V0/images/image.png)
 ---
 
 ## 3.7.2. Plano de Controle (`barrel_shifter`)
@@ -213,7 +212,7 @@ Serve para validar o funcionamento do deslocador de bits (barrel shifter), verif
     endmodule
     ```
     
-    ![image.png](image%201.png)
+    ![image.png](./Projeto-Final-V0/images/image%201.png)
     
 - Testbench v2 usando N=8
     
@@ -267,7 +266,7 @@ Serve para validar o funcionamento do deslocador de bits (barrel shifter), verif
     
     ```
     
-    ![image.png](image%202.png)
+    ![image.png](./Projeto-Final-V0/images/image%202.png)
     
 
 ```verilog
@@ -541,9 +540,9 @@ Analisem o código e me retornem modificações caso necessária, informem para 
     endmodule
     ```
     
-    ![image.png](image%203.png)
+    ![image.png](./Projeto-Final-V0/images/image%203.png)
     
-    ![image.png](image%204.png)
+    ![image.png](./Projeto-Final-V0/images/image%204.png)
     
 - Testbench v1 usando N=8
     
@@ -627,9 +626,9 @@ Analisem o código e me retornem modificações caso necessária, informem para 
     endmodule
     ```
     
-    ![image.png](image%205.png)
+    ![image.png](./Projeto-Final-V0/images/image%205.png)
     
-    ![image.png](image%206.png)
+    ![image.png](./Projeto-Final-V0/images/image%206.png)
     
 
 ```verilog
