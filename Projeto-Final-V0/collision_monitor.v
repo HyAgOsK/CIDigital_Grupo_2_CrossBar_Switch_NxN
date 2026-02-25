@@ -1,10 +1,10 @@
 module collision_monitor #(
   parameter N = 8,
-  parameter ROUTE_BITS = clog2(N)
+  parameter ROUTE_BITS = $clog2(N)
 )(
   input  [N*ROUTE_BITS-1:0] route_flat,   // Rotas de todas as saídas (flatten)
-  input  [N-1:0]            output_enable,// Máscara de habilitação por saída
-  output reg                collision_error // Flag global de colisão
+  input  [N-1:0] output_enable,// Máscara de habilitação por saída
+  output reg collision_error // Flag global de colisão
 );
 
   // Índices de comparação entre pares de saídas
@@ -18,7 +18,7 @@ module collision_monitor #(
     collision_error = 1'b0;
 
     // Compara todos os pares únicos de saídas (a,b) com b>a
-    // Complexidade O(N^2), aceitável para N pequeno/moderado neste projeto
+    // Complexidade O(N^2),  pequeno/moderado neste projetoaceitável para N.
     for (a = 0; a < N; a = a + 1) begin
       for (b = a + 1; b < N; b = b + 1) begin
         // Extrai as rotas atuais de a e b
