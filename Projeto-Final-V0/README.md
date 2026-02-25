@@ -103,11 +103,11 @@ O sistema deve:
 
 A arquitetura implementada é composta pelos seguintes blocos: (**Excalidraw**: [https://excalidraw.com/#json=6uOeknHxXXK503_TV-6tO,4uRVQPezpFK6KCy5h4mJFQ](https://excalidraw.com/#json=6uOeknHxXXK503_TV-6tO,4uRVQPezpFK6KCy5h4mJFQ))
 
-![image.png](fluxograma.png)
+![image.png](image.png)
 
 ---
 
-### 3.7.2. Plano de Controle (`barrel_shifter`)
+## 3.7.2. Plano de Controle (`barrel_shifter`)
 
 O módulo `barrel_shifter` recebe `route_flat` (índices de rota por saída) e gera `select_SE_flat`, uma matriz flatten NxN em que cada linha representa uma saída e cada bit ativo indica qual entrada foi selecionada.
 
@@ -119,17 +119,20 @@ O módulo `barrel_shifter` recebe `route_flat` (índices de rota por saída) e g
 
 > Na implementação atual, o módulo atua como **gerador combinacional do mapa de seleção** (plano de controle), e não como bloco de deslocamento de dados diretamente.
 > 
+- Módulo `barrel_shifter`
+    - [x]  @Bruno Nassar
+    - [x]  @Hyago Vieira
 
 Tarefas:
 
-- [ ]  Preciso de um Testbench feito para próxima reunião (26/02)
+- [x]  Preciso de um Testbench feito para próxima reunião (26/02)
 
 Responsáveis:
 
-- @Lucas Souza
-- @Bruno Nassar
-- @Matheus Brandani
-- @Ronan
+- [x]  @Lucas Souza
+- [x]  @Bruno Nassar
+- [x]  @Matheus Brandani
+- [x]  @Ronan
 
 Analisem o código e me retornem modificações caso necessária, informem para mim melhorias se for necessário, comentem e adicionem em seguida desta página o testebench, juntamente com a modificação caso necessária. Vou colocar um exemplo de testebench.
 
@@ -137,7 +140,135 @@ Analisem o código e me retornem modificações caso necessária, informem para 
 
 ### 3.7.3 Plano de controle (`tb_barrel_shifter`)
 
-Descreva aqui o teste…
+Serve para validar o funcionamento do deslocador de bits (barrel shifter), verificando se ele lida corretamente com diferentes padrões de entrada e se a saída está conforme o esperado.
+
+@Lucas Souza → Feito um modelo de testbench simples que verifica a implementação do módulo barrel shifter, os valores de saída em hexadecimal devem ser: 1111 , 8421 , 1248 , 8214
+
+@Bruno Nassar → O testbench final, verifica além dos casos padrões de rotação, usando decimal nos testes, ele demonstra o caso inválido, porém que justamente a matriz de one-hot causa, pela decodificação após o barrel shift.
+
+- Testbench v0 usando N=4
+    
+    ```verilog
+    // descreva aqui o Testbench simples para validar...
+    `timescale 1ns/1ps
+    
+    module tb_barrel_shifter;
+    
+      parameter N = 4;
+      parameter ROUTE_BITS = $clog2(N);
+    
+      reg  [N*ROUTE_BITS-1:0] route_flat;
+      wire [N*N-1:0]          select_SE_flat;
+    
+      // Instancia DUT
+      barrel_shifter #(
+        .N(N),
+        .ROUTE_BITS(ROUTE_BITS)
+      ) dut (
+        .route_flat(route_flat),
+        .select_SE_flat(select_SE_flat)
+      );
+    
+      initial begin
+    
+        // -------------------------------
+        // CASO 1: Todas saídas -> entrada 0
+        // route = {0,0,0,0}
+        // -------------------------------
+        route_flat = 8'b00000000;
+        #10;
+    
+        // -------------------------------
+        // CASO 2: Identidade
+        // route[0]=0
+        // route[1]=1
+        // route[2]=2
+        // route[3]=3
+        // -------------------------------
+        route_flat = {2'b11, 2'b10, 2'b01, 2'b00};
+        #10;
+    
+        // -------------------------------
+        // CASO 3: Invertido
+        // route[0]=3
+        // route[1]=2
+        // route[2]=1
+        // route[3]=0
+        // -------------------------------
+        route_flat = {2'b00, 2'b01, 2'b10, 2'b11};
+        #10;
+    
+        // -------------------------------
+        // CASO 4: Rota inválida
+        // route[3]=4 (100 binário)
+        // como ROUTE_BITS=2, 4 vira 00 (overflow)
+        // então vamos simular inválido manualmente
+        // -------------------------------
+        route_flat = {2'b11, 2'b01, 2'b00, 2'b10};
+        #10;
+    
+        $finish;
+      end
+    
+    endmodule
+    ```
+    
+    ![image.png](image%201.png)
+    
+- Testbench v2 usando N=8
+    
+    ```verilog
+    `timescale 1ns / 1ps
+    
+    module barrel_shifter_tb();
+    
+    	parameter N = 8;
+    	parameter ROUTE_BITS = $clog2(N);
+    
+    	reg [N*ROUTE_BITS-1:0] route_flat;
+    	wire [N*N-1:0] select_SE_flat;
+    
+    	barrel_shifter #(
+    		.N(N),
+    		.ROUTE_BITS(ROUTE_BITS)
+    	) DUT (
+    		.route_flat(route_flat),
+    		.select_SE_flat(select_SE_flat)
+    	);
+    
+    	initial begin
+    		$monitor("Rotas: %b_%b_%b_%b_%b_%b_%b_%b | Matriz One-Hot: %b_%b_%b_%b_%b_%b_%b_%b",
+    			route_flat[23:21], route_flat[20:18], route_flat[17:15], route_flat[14:12], route_flat[11:9], route_flat[8:6], route_flat[5:3], route_flat[2:0],
+    			select_SE_flat[63:56], select_SE_flat[55:48], select_SE_flat[47:40], select_SE_flat[39:32], select_SE_flat[31:24], select_SE_flat[23:16], select_SE_flat[15:8], select_SE_flat[7:0]);
+    
+    		// Vetor de rotas: {rota8, rota7, rota6, rota5, rota4, rota3, rota2, rota1, rota0}
+    		// {7, 6, 5, 4, 3, 2, 1, 0}
+    		$display("ROTA VALIDA: {7, 6, 5, 4, 3, 2, 1, 0}");
+    		route_flat = {3'd7, 3'd6, 3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd0};
+    		#10;
+    
+    		// {5, 4, 3, 2, 1, 0, 7, 6}
+    		$display("\nROTA VALIDA: {5, 4, 3, 2, 1, 0, 7, 6}");
+    		route_flat = {3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd0, 3'd7, 3'd6};
+    		#10;
+    
+    		// {5, 4, 3, 2, 1, 0, 6, 7} (Rota inválida)
+    		$display("\nROTA INVALIDA: {5, 4, 3, 2, 1, 0, 6, 7}");
+    		route_flat = {3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd0, 3'd6, 3'd7};
+    		#10;
+    
+    		// Importante:
+    		// Por definição, um CROSSBAR SWITCH BARREL SHIFTER suporta apenas N combinações de mapeamentos.
+    		//    Enquanto que um CROSSBAR SWITCH TRADICIONAL suporta todas as N! combinações de mapeamentos.
+    		// https://en.wikipedia.org/wiki/Barrel_shifter
+    	end
+    
+    endmodule
+    
+    ```
+    
+    ![image.png](image%202.png)
+    
 
 ```verilog
 module barrel_shifter #(
@@ -148,26 +279,36 @@ module barrel_shifter #(
   output [N*N-1:0]          select_SE_flat   // Matriz flatten de seleção: linha j ocupa [j*N +: N]
 );
 
+  // vetor one hot entrada 0 selecionada
+  localparam [N-1:0] BASE_ONEHOT = {{(N-1){1'b0}}, 1'b1};
+
   // j percorre as saídas (cada saída possui uma rota independente)
   genvar j;
   generate
     for (j = 0; j < N; j = j + 1) begin : GEN_ROW
       // route_j = índice da entrada selecionada pela saída j
       wire [ROUTE_BITS-1:0] route_j;
-
       // onehot_j = vetor one-hot de tamanho N:
       // bit i = 1 indica que a entrada i deve conectar à saída j
       wire [N-1:0] onehot_j;
 
+      // Vetores para rotação barrel (circular)
+      wire [2*N-1:0] base_dup_j;
+      wire [2*N-1:0] shifted_j;
+
       // Extrai route[j] do vetor flatten
       assign route_j = route_flat[j*ROUTE_BITS +: ROUTE_BITS];
 
-      // Decodificação binário -> one-hot
-      // Se route_j for válido (< N), ativa exatamente um bit.
-      // Se for inválido (>= N), gera tudo zero (proteção contra rota fora de faixa).
-      assign onehot_j = (route_j < N) ?
-                        ({{(N-1){1'b0}},1'b1} << route_j) :
-                        {N{1'b0}};
+      // Duplica o vetor base para permitir rotação circular via shift
+      assign base_dup_j = {BASE_ONEHOT, BASE_ONEHOT};
+
+      // Realiza a rotação circular do vetor base
+      assign shifted_j = base_dup_j << route_j;
+
+      // Se route_j for válido (<N), pega os N bits menos significativos
+      // isso equivale a um left rotate,
+      // Se invalido (quando N não é potência de 2) zera linha
+      assign onehot_j = (route_j < N) ? shifted_j[N-1:0]:{N{1'b0}};
 
       // Escreve a linha j da matriz de seleção (select_SE[j][*]) no vetor flatten
       assign select_SE_flat[j*N +: N] = onehot_j;
@@ -180,10 +321,8 @@ endmodule
 
 ---
 
-```verilog
-// descreva aqui o Testbench simples para validar...
-
-```
+> **Observação**: Analisando nosso módulo e nosso teste, resumidamente, é feito inicialmente o barrel shifter, e após isso é usado o shift feito, (binarizado-one hot), para se repassado para o crossbar.
+> 
 
 ---
 
@@ -292,24 +431,206 @@ A lógica compara pares de saídas habilitadas (`a`, `b`) e ativa `collision_err
 
 Trata-se de uma lógica combinacional de comparação com complexidade O(N²), adequada ao escopo do projeto acadêmico.
 
+- Módulo
+    - [x]  @Hyago Vieira
+    - [x]  @Bruno Nassar
+
 Tarefas:
 
-- [ ]  Preciso de um Testbench feito para próxima reunião (26/02)
+- [x]  Preciso de um Testbench feito para próxima reunião (26/02)
 
 Responsáveis:
 
-- @Hyago Vieira
-- @Fernando
-- @Luiz Fernando ribeiro
-- @Carlos Miguel
+- [x]  @Hyago Vieira
+- [x]  @Fernando
+- [x]  @Luiz Fernando ribeiro
+- [x]  @Carlos Miguel
+- [x]  @Lucas Souza
 
 Analisem o código e me retornem modificações caso necessária, informem para mim melhorias se for necessário, comentem e adicionem em seguida desta página o testebench, juntamente com a modificação caso necessária. Vou colocar um exemplo de testebench.
 
 ---
 
-### 3.7.8 Plano de Monitoramento (`tb_crossbar_nxn`)
+### 3.7.8 Plano de Monitoramento (`tb_colission_monitor`)
 
-Descreva aqui o teste…
+@Hyago Vieira → É um testbench combinacional e direto, que valida se o `colision_monitor` :
+
+- detecta colisão quando há rotas repitidas entre saídas habilitadas
+- ignora rotas repetidas quando alguma das saídas está desabilitada
+
+@Bruno Nassar → Testbench ampliada para N=8. Exibição de resultados de colisão formatados no terminal. 
+
+- Testbench v0 usando N=4
+    
+    ```verilog
+    // Desenvolva o testbench aqui...
+    // Testbench simples para validar collision_monitor
+    `timescale 1ns/1ps
+    
+    module tb_collision_monitor;
+    
+      parameter N = 4;
+      parameter ROUTE_BITS = $clog2(N);
+    
+      reg  [N*ROUTE_BITS-1:0] route_flat;
+      reg  [N-1:0]            output_enable;
+      wire                    collision_error;
+    
+      // Instancia DUT
+      collision_monitor #(
+        .N(N),
+        .ROUTE_BITS(ROUTE_BITS)
+      ) dut (
+        .route_flat(route_flat),
+        .output_enable(output_enable),
+        .collision_error(collision_error)
+      );
+    
+      initial begin
+        $display("==== INICIO TESTE collision_monitor ====");
+        $monitor("t=%0t | output_enable=%b | route_flat=%b | collision_error=%b",
+                 $time, output_enable, route_flat, collision_error);
+    
+        // ------------------------------------------
+        // CASO 1: Todas saídas desabilitadas
+        // Mesmo com rotas iguais, NÃO deve dar colisão
+        // ------------------------------------------
+        route_flat     = {2'b00, 2'b00, 2'b00, 2'b00};
+        output_enable  = 4'b0000;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 2: Todas habilitadas, rotas diferentes (identidade)
+        // route[0]=0, route[1]=1, route[2]=2, route[3]=3
+        // NÃO deve dar colisão
+        // ------------------------------------------
+        route_flat     = {2'b11, 2'b10, 2'b01, 2'b00};
+        output_enable  = 4'b1111;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 3: Colisão entre duas saídas habilitadas
+        // route[0]=1 e route[1]=1 -> colisão
+        // ------------------------------------------
+        route_flat     = {2'b11, 2'b10, 2'b01, 2'b01};
+        output_enable  = 4'b1111;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 4: Rotas iguais, mas uma saída desabilitada
+        // route[0]=2 e route[1]=2, porém output_enable[1]=0
+        // NÃO deve dar colisão
+        // ------------------------------------------
+        route_flat     = {2'b00, 2'b01, 2'b10, 2'b10};
+        output_enable  = 4'b1101; // saída 1 desabilitada
+        #10;
+    
+        // ------------------------------------------
+        // CASO 5: Múltiplas colisões
+        // route[0]=3, route[1]=3 e route[2]=0, route[3]=0
+        // Deve dar colisão
+        // ------------------------------------------
+        route_flat     = {2'b00, 2'b00, 2'b11, 2'b11};
+        output_enable  = 4'b1111;
+        #10;
+    
+        $display("==== FIM TESTE collision_monitor ====");
+        $finish;
+      end
+    
+    endmodule
+    ```
+    
+    ![image.png](image%203.png)
+    
+    ![image.png](image%204.png)
+    
+- Testbench v1 usando N=8
+    
+    ```verilog
+    `timescale 1ns/1ps
+    
+    module tb_collision_monitor;
+    
+      parameter N = 8;
+      parameter ROUTE_BITS = $clog2(N);
+    
+      reg  [N*ROUTE_BITS-1:0] route_flat;
+      reg  [N-1:0]            output_enable;
+      wire                    collision_error;
+    
+      // Instancia DUT
+      collision_monitor #(
+        .N(N),
+        .ROUTE_BITS(ROUTE_BITS)
+      ) dut (
+        .route_flat(route_flat),
+        .output_enable(output_enable),
+        .collision_error(collision_error)
+      );
+    
+      initial begin
+        $display("==== INICIO TESTE collision_monitor ====");
+        $monitor("output_enable=%b_%b | route_flat=%b_%b_%b_%b_%b_%b_%b_%b | collision_error=%b",
+                 output_enable[7:4], output_enable[3:0],
+    			 route_flat[23:21], route_flat[20:18], route_flat[17:15], route_flat[14:12], route_flat[11:9], route_flat[8:6], route_flat[5:3], route_flat[2:0],
+    			 collision_error);
+    
+        // ------------------------------------------
+        // CASO 1: Todas saídas desabilitadas
+        // Mesmo com rotas iguais, NÃO deve dar colisão
+        // ------------------------------------------
+        route_flat     = {3'd0, 3'd0, 3'd0, 3'd0, 3'd0, 3'd0, 3'd0, 3'd0};
+        output_enable  = 8'd0;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 2: Todas habilitadas, rotas diferentes (identidade)
+        // route[0]=0, route[1]=1, route[2]=2, route[3]=3, ...
+        // NÃO deve dar colisão
+        // ------------------------------------------
+    	route_flat     = {3'd7, 3'd6, 3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd0};
+        output_enable  = 8'b1111_1111;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 3: Colisão entre duas saídas habilitadas
+        // route[0]=1 e route[1]=1 -> colisão
+        // ------------------------------------------
+    	route_flat     = {3'd7, 3'd6, 3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd1};
+        output_enable  = 8'b1111_1111;
+        #10;
+    
+        // ------------------------------------------
+        // CASO 4: Rotas iguais, mas uma saída desabilitada
+        // route[0]=1 e route[1]=1, porém output_enable[1]=0
+        // NÃO deve dar colisão
+        // ------------------------------------------
+        route_flat     = {3'd7, 3'd6, 3'd5, 3'd4, 3'd3, 3'd2, 3'd1, 3'd1};
+        output_enable  = 8'b1111_1101; // saída 1 desabilitada
+        #10;
+    
+        // ------------------------------------------
+        // CASO 5: Múltiplas colisões
+        // route[0]=3, route[1]=3 e route[2]=0, route[3]=0
+        // Deve dar colisão
+        // ------------------------------------------
+        route_flat     = {2'b00, 2'b00, 2'b11, 2'b11};
+    	route_flat     = {3'd7, 3'd6, 3'd5, 3'd4, 3'd0, 3'd0, 3'd3, 3'd3};
+        output_enable  = 8'b1111_1111;
+        #10;
+    
+        $display("==== FIM TESTE collision_monitor ====");
+        $finish;
+      end
+    
+    endmodule
+    ```
+    
+    ![image.png](image%205.png)
+    
+    ![image.png](image%206.png)
+    
 
 ```verilog
 module collision_monitor #(
@@ -332,7 +653,7 @@ module collision_monitor #(
     collision_error = 1'b0;
 
     // Compara todos os pares únicos de saídas (a,b) com b>a
-    // Complexidade O(N^2), aceitável para N pequeno/moderado neste projeto.
+    // Complexidade O(N^2),  pequeno/moderado neste projetoaceitável para N.
     for (a = 0; a < N; a = a + 1) begin
       for (b = a + 1; b < N; b = b + 1) begin
         // Extrai as rotas atuais de a e b
@@ -354,9 +675,8 @@ endmodule
 
 ---
 
-```verilog
-// Desenvolva o testbench aqui...
-```
+> **Observação**: Analisando nosso módulo e nosso teste, resumidamente, é obtido as rotas e verifica das entradas que selecionam a mesma saída (colisão detectada) caso contrário não.
+> 
 
 ---
 
