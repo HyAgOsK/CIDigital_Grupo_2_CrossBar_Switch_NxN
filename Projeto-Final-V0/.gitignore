@@ -1,1 +1,5 @@
 # Coloquem aqui arquivos do tipo /work ... mpf ... todos que não entram como .v
+*.mpf
+*.mti
+*.wlf
+*work/
