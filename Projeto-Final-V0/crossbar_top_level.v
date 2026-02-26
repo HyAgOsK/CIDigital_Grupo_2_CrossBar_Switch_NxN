@@ -1,7 +1,7 @@
 module crossbar_top_level #(
   parameter N = 8,
   parameter W = 8,
-  parameter ROUTE_BITS = clog2(N)
+  parameter ROUTE_BITS = $clog2(N)
 )(
   input  [N*W-1:0]          in_data_flat,     // Dados de entrada (flatten)
   input  [N*ROUTE_BITS-1:0] route_flat,       // Rotas por saída (flatten)

@@ -5,6 +5,7 @@ module crossbar_nxn #(
   input  [N*W-1:0]     in_data_flat,     // Entradas flatten: in_data[i] ocupa [i*W +: W]
   input  [N*N-1:0]     select_SE_flat,   // Matriz de seleção flatten: linha j em [j*N +: N]
   input  [N-1:0]       output_enable,    // Habilitação por saída
+  output reg [N-1:0]   collision_error,  // Erro de colisão de seleção
   output reg [N*W-1:0] out_data_flat     // Saídas flatten: out_data[j] ocupa [j*W +: W]
 );
 
@@ -34,7 +35,7 @@ module crossbar_nxn #(
           // Uso de OR torna o módulo robusto caso haja multi-hot acidental em sel_row
           // (em condição ideal, sel_row é one-hot e apenas uma entrada contribui).
           if (sel_row[i])
-            tmp_out = tmp_out | in_data_flat[i*W +: W];
+            tmp_out = in_data_flat[i*W +: W];
         end
       end
 

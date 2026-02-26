@@ -2,83 +2,67 @@
 
 module tb_crossbar_top_level;
 
-  // Verilog-2001 (sem int / sem clog2)
-  localparam N = 8;
-  localparam W = 8;
-  localparam ROUTE_BITS = clog2(N); // clog2(8)=3
+  parameter N = 8;
+  parameter W = 16; // W=8 também >=8 multiplo de 2
+  parameter ROUTE_BITS = $clog2(N);
 
-  // Macros para acessar vetores flatten
+  reg  [N*W-1:0]          in_data_flat;
+  reg  [N*ROUTE_BITS-1:0] route_flat;
+  reg  [N-1:0]            output_enable;
 
+  wire [N*W-1:0]          out_data_flat;
+  wire                    collision_error;
 
-  // Clock só para controle/amostragem do testbench
-  reg clk_tb;
-  initial clk_tb = 1'b0;
-  always #5 clk_tb = ~clk_tb;
-
-  // Estímulos TB (flatten)
-  reg  [N*W-1:0]          in_data_tb;
-  reg  [N*ROUTE_BITS-1:0] route_tb;
-  reg  [N-1:0]            output_enable_tb;
-
-  // Saídas DUT (flatten)
-  wire [N*W-1:0]          out_data_dut;
-  wire                    collision_error_dut;
-
-  // Scoreboard (modelo de referência)
-  reg  [N*W-1:0]          expected_out_flat;
-  reg                     expected_collision;
-
-
-  integer checks;
-  integer fails;
-
-  // Instância do DUT (versão Verilog flatten)
   crossbar_top_level #(
     .N(N),
     .W(W),
     .ROUTE_BITS(ROUTE_BITS)
   ) dut (
-    .in_data_flat(in_data_tb),
-    .route_flat(route_tb),
-    .output_enable(output_enable_tb),
-    .out_data_flat(out_data_dut),
-    .collision_error(collision_error_dut)
+    .in_data_flat(in_data_flat),
+    .route_flat(route_flat),
+    .output_enable(output_enable),
+    .out_data_flat(out_data_flat),
+    .collision_error(collision_error)
   );
 
-  // Modelo de referência
-
-  // ---------------------------------------------------------------------------
-  // Tasks
-  // ---------------------------------------------------------------------------
-  // ... A elaborar
-
-  // ---------------------------------------------------------------------------
-  // Estímulos
-  // ---------------------------------------------------------------------------
-  // ... A elaborar
-
   initial begin
-    checks = 0;
-    fails  = 0;
 
-    // Inicialização
-    in_data_tb       = {N*W{1'b0}};
-    route_tb         = {N*ROUTE_BITS{1'b0}};
-    output_enable_tb = {N{1'b0}};
+    // Input pattern:
+    in_data_flat = {
+      8'h88, 8'h77, 8'h66, 8'h55,
+      8'h44, 8'h33, 8'h22, 8'h11
+    };
 
+    // Enable all outputs
+    output_enable = 8'b1111_1111;
 
-    // ---------------- Caso A — 4 rotas simultâneas (sem colisão) ----------------
+    // CASE 1: VALID MAPPING (NO COLLISION)
+    route_flat = {3'd7,3'd6,3'd5,3'd4,3'd3,3'd2,3'd1,3'd0};
+    #10;
 
+    // CASE 2: SIMPLE COLLISION
+    route_flat = {3'd7,3'd6,3'd5,3'd4,3'd3,3'd3,3'd1,3'd0};
+    #10;
 
-    // ---------------- Caso B — colisão forçada ----------------
+    // CASE 3: MULTIPLE COLLISIONS
+    route_flat = {3'd7,3'd6,3'd5,3'd5,3'd2,3'd2,3'd1,3'd0};
+    #10;
 
+    // CASE 4 MASK COLLISION - A COLISÃO EXISTE MAS EU TRAVO A PORTA (MÁSCARA)
+    route_flat = {3'd7,3'd6,3'd5,3'd5,3'd3,3'd2,3'd1,3'd0};
+    output_enable = 8'b1110_1111;
+    #10;
+    // CASE 5: COLLISION BUT ONE DISABLED
+    route_flat    = {3'd7,3'd6,3'd5,3'd4,3'd3,3'd3,3'd1,3'd0};
+    output_enable = 8'b1111_1101;
+    #10;
 
-    // ---------------- Caso C — enable/zero + colisão mascarada ----------------
+    // CASE 6: EXTREME COLLISION
+    output_enable = 8'b1111_1111;
+    route_flat = {3'd0,3'd0,3'd0,3'd0,3'd0,3'd0,3'd0,3'd0};
+    #10;
 
-
-    // ---------------- Caso D — rota dinâmica (uma saída habilitada) ----------------
-
-    $finish;
+    $stop;
   end
 
 endmodule
